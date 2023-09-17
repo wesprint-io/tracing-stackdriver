@@ -1,6 +1,7 @@
 use crate::event_formatter::EventFormatter;
+use std::ptr::NonNull;
 use std::{fmt, io, ops::Deref};
-use tracing_core::{Event, Subscriber};
+use tracing_core::{Collect, Event};
 use tracing_subscriber::{
     fmt::{format::JsonFields, MakeWriter},
     registry::LookupSpan,
@@ -27,10 +28,10 @@ impl From<Error> for fmt::Error {
 /// Create a configurable stackdriver-specific Layer and event formatter
 pub fn layer<S>() -> Layer<S>
 where
-    S: Subscriber + for<'span> LookupSpan<'span>,
+    S: Collect + for<'span> LookupSpan<'span>,
 {
     Layer(
-        tracing_subscriber::fmt::layer()
+        tracing_subscriber::fmt::subscriber()
             .json()
             .event_format(EventFormatter::default()),
     )
@@ -38,14 +39,14 @@ where
 
 /// A tracing-compatible Layer implementation for Stackdriver
 pub struct Layer<S, W = fn() -> io::Stdout>(
-    tracing_subscriber::fmt::Layer<S, JsonFields, EventFormatter, W>,
+    tracing_subscriber::fmt::Subscriber<S, JsonFields, EventFormatter, W>,
 )
 where
-    S: Subscriber + for<'span> LookupSpan<'span>;
+    S: Collect + for<'span> LookupSpan<'span>;
 
 impl<S, W> Layer<S, W>
 where
-    S: Subscriber + for<'span> LookupSpan<'span>,
+    S: Collect + for<'span> LookupSpan<'span>,
     W: for<'writer> MakeWriter<'writer> + 'static,
 {
     /// Sets the MakeWriter that the Layer being built will use to write events.
@@ -76,16 +77,16 @@ where
 }
 
 /// Layer trait implementation that delegates to the inner Layer methods
-impl<S, W> tracing_subscriber::layer::Layer<S> for Layer<S, W>
+impl<S, W> tracing_subscriber::Subscribe<S> for Layer<S, W>
 where
-    S: Subscriber + for<'span> LookupSpan<'span>,
+    S: Collect + for<'span> LookupSpan<'span>,
     W: for<'writer> MakeWriter<'writer> + 'static,
 {
     fn on_new_span(
         &self,
         attrs: &tracing_core::span::Attributes<'_>,
         id: &tracing_core::span::Id,
-        context: tracing_subscriber::layer::Context<'_, S>,
+        context: tracing_subscriber::subscribe::Context<'_, S>,
     ) {
         self.0.on_new_span(attrs, id, context)
     }
@@ -94,7 +95,7 @@ where
         &self,
         span: &tracing_core::span::Id,
         values: &tracing_core::span::Record<'_>,
-        context: tracing_subscriber::layer::Context<'_, S>,
+        context: tracing_subscriber::subscribe::Context<'_, S>,
     ) {
         self.0.on_record(span, values, context)
     }
@@ -102,7 +103,7 @@ where
     fn on_enter(
         &self,
         id: &tracing_core::span::Id,
-        context: tracing_subscriber::layer::Context<'_, S>,
+        context: tracing_subscriber::subscribe::Context<'_, S>,
     ) {
         self.0.on_enter(id, context)
     }
@@ -110,7 +111,7 @@ where
     fn on_exit(
         &self,
         id: &tracing_core::span::Id,
-        context: tracing_subscriber::layer::Context<'_, S>,
+        context: tracing_subscriber::subscribe::Context<'_, S>,
     ) {
         self.0.on_exit(id, context)
     }
@@ -118,25 +119,25 @@ where
     fn on_close(
         &self,
         id: tracing_core::span::Id,
-        context: tracing_subscriber::layer::Context<'_, S>,
+        context: tracing_subscriber::subscribe::Context<'_, S>,
     ) {
         self.0.on_close(id, context)
     }
 
-    fn on_event(&self, event: &Event<'_>, context: tracing_subscriber::layer::Context<'_, S>) {
+    fn on_event(&self, event: &Event<'_>, context: tracing_subscriber::subscribe::Context<'_, S>) {
         self.0.on_event(event, context)
     }
 
-    unsafe fn downcast_raw(&self, id: std::any::TypeId) -> Option<*const ()> {
+    unsafe fn downcast_raw(&self, id: std::any::TypeId) -> std::option::Option<NonNull<()>> {
         self.0.downcast_raw(id)
     }
 }
 
 impl<S, W> Deref for Layer<S, W>
 where
-    S: Subscriber + for<'span> LookupSpan<'span>,
+    S: Collect + for<'span> LookupSpan<'span>,
 {
-    type Target = tracing_subscriber::fmt::Layer<S, JsonFields, EventFormatter, W>;
+    type Target = tracing_subscriber::fmt::Subscriber<S, JsonFields, EventFormatter, W>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

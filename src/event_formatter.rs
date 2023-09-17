@@ -7,7 +7,7 @@ use crate::{
 use serde::ser::{SerializeMap, Serializer as _};
 use std::fmt;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
-use tracing_core::{Event, Subscriber};
+use tracing_core::{Collect, Event};
 use tracing_subscriber::{
     field::VisitOutput,
     fmt::{
@@ -51,7 +51,7 @@ impl EventFormatter {
         event: &Event,
     ) -> Result<(), Error>
     where
-        S: Subscriber + for<'span> LookupSpan<'span>,
+        S: Collect + for<'span> LookupSpan<'span>,
     {
         let time = OffsetDateTime::now_utc().format(&Rfc3339)?;
         let meta = event.metadata();
@@ -131,7 +131,7 @@ impl EventFormatter {
 
 impl<S> FormatEvent<S, JsonFields> for EventFormatter
 where
-    S: Subscriber + for<'span> LookupSpan<'span>,
+    S: Collect + for<'span> LookupSpan<'span>,
 {
     fn format_event(
         &self,
@@ -140,7 +140,7 @@ where
         event: &Event,
     ) -> fmt::Result
     where
-        S: Subscriber + for<'span> LookupSpan<'span>,
+        S: Collect + for<'span> LookupSpan<'span>,
     {
         let serializer = serde_json::Serializer::new(WriteAdaptor::new(&mut writer));
         self.format_event(context, serializer, event)?;

@@ -1,6 +1,6 @@
 use serde::ser::{Serialize, SerializeMap, SerializeSeq};
 use serde_json::Value;
-use tracing_core::Subscriber;
+use tracing_core::Collect;
 use tracing_subscriber::{
     fmt::{format::JsonFields, FmtContext, FormattedFields},
     registry::{LookupSpan, SpanRef},
@@ -59,11 +59,11 @@ where
 /// Serializable tracing context for serializing a collection of spans
 pub(crate) struct SerializableContext<'a, 'b, S>(&'b FmtContext<'a, S, JsonFields>)
 where
-    S: Subscriber + for<'lookup> LookupSpan<'lookup>;
+    S: Collect + for<'lookup> LookupSpan<'lookup>;
 
 impl<'a, 'b, S> SerializableContext<'a, 'b, S>
 where
-    S: Subscriber + for<'lookup> LookupSpan<'lookup>,
+    S: Collect + for<'lookup> LookupSpan<'lookup>,
 {
     pub(crate) fn new(context: &'b FmtContext<'a, S, JsonFields>) -> Self {
         Self(context)
@@ -72,7 +72,7 @@ where
 
 impl<'a, 'b, S> Serialize for SerializableContext<'a, 'b, S>
 where
-    S: Subscriber + for<'lookup> LookupSpan<'lookup>,
+    S: Collect + for<'lookup> LookupSpan<'lookup>,
 {
     fn serialize<R>(&self, serializer: R) -> Result<R::Ok, R::Error>
     where

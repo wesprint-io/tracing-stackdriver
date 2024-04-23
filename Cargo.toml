@@ -32,7 +32,7 @@ version = "0.2.9"
 [dependencies.opentelemetry]
 default-features = false
 features = ["trace"]
-version = "0.20.0"
+version = "=0.22.0"
 optional = true
 
 [dependencies.serde]

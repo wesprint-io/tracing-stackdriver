@@ -5,7 +5,7 @@ use crate::{
     writer::WriteAdaptor,
 };
 #[cfg(feature = "opentelemetry")]
-use opentelemetry::trace::context::TraceContextExt;
+use opentelemetry::trace::TraceContextExt;
 use serde::ser::{SerializeMap, Serializer as _};
 use std::fmt;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
